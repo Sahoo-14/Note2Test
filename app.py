@@ -84,29 +84,59 @@ user_input = st.text_area(
 
 col1, col2 = st.columns(2)
 
+MIN_WORDS_FOR_SUMMARY = 20
+MAX_WORDS_SUPPORTED = 3000
+
 with col1:
     if st.button("🔍 Summarize", use_container_width=True):
-        if user_input.strip():
+        stripped_input = user_input.strip()
+        input_word_count = len(stripped_input.split())
+
+        if not stripped_input:
+            st.warning("Please enter some notes first!")
+        elif input_word_count < MIN_WORDS_FOR_SUMMARY:
+            st.warning(
+                f"Your notes are quite short ({input_word_count} words). "
+                f"Add at least {MIN_WORDS_FOR_SUMMARY} words for a meaningful summary."
+            )
+        elif input_word_count > MAX_WORDS_SUPPORTED:
+            st.warning(
+                f"Your notes are very long ({input_word_count} words). "
+                f"Please shorten to under {MAX_WORDS_SUPPORTED} words to avoid timeouts."
+            )
+        else:
             with st.spinner("Loading AI model and summarizing... (First run may take a minute)"):
                 try:
                     summarizer = load_summarizer()
                     # Handle max_length dynamically based on input length to avoid truncation warnings
-                    input_words = len(user_input.split())
-                    max_len = min(100, max(30, int(input_words * 0.6)))
-                    
-                    summary = summarizer(user_input, max_length=max_len, min_length=15, do_sample=False)[0]['summary_text']
+                    max_len = min(100, max(30, int(input_word_count * 0.6)))
+
+                    summary = summarizer(stripped_input, max_length=max_len, min_length=15, do_sample=False)[0]['summary_text']
                     st.subheader("📄 Summary")
                     st.write(summary)
+                except ConnectionError:
+                    st.error("⚠️ Couldn't download the AI model. Check your internet connection and try again.")
                 except Exception as e:
-                    st.error(f"Error during summarization: {str(e)}")
-        else:
-            st.warning("Please enter some notes first!")
+                    st.error(f"⚠️ Something went wrong during summarization: {str(e)}")
+
+MIN_WORDS_FOR_QUIZ = 10
 
 with col2:
     if st.button("❓ Generate Quiz", use_container_width=True):
-        if user_input.strip():
-            quiz = generate_quiz_from_notes(user_input)
-            st.subheader("📝 Quiz")
-            st.text(quiz)
-        else:
+        stripped_input = user_input.strip()
+        input_word_count = len(stripped_input.split())
+
+        if not stripped_input:
             st.warning("Please enter some notes first!")
+        elif input_word_count < MIN_WORDS_FOR_QUIZ:
+            st.warning(
+                f"Your notes are too short to build a quiz ({input_word_count} words). "
+                f"Add at least {MIN_WORDS_FOR_QUIZ} words."
+            )
+        else:
+            try:
+                quiz = generate_quiz_from_notes(stripped_input)
+                st.subheader("📝 Quiz")
+                st.text(quiz)
+            except Exception as e:
+                st.error(f"⚠️ Something went wrong generating the quiz: {str(e)}")
