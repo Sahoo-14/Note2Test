@@ -2,6 +2,9 @@ import streamlit as st
 from transformers import pipeline
 import random
 import re
+from pypdf import PdfReader
+from docx import Document
+import io
 
 # Set page config must be the first Streamlit command
 st.set_page_config(page_title="NoteGenie", layout="centered")
@@ -16,6 +19,24 @@ def load_summarizer():
         # Fallback to text2text-generation if summarization task registration fails
         return pipeline("text2text-generation", model="google/flan-t5-small")
 
+def extract_text_from_file(uploaded_file):
+    """Extract plain text from an uploaded PDF, DOCX, or TXT file."""
+    file_type = uploaded_file.name.split(".")[-1].lower()
+
+    if file_type == "txt":
+        return uploaded_file.read().decode("utf-8", errors="ignore")
+
+    elif file_type == "pdf":
+        reader = PdfReader(io.BytesIO(uploaded_file.read()))
+        return "\n".join(page.extract_text() or "" for page in reader.pages)
+
+    elif file_type == "docx":
+        doc = Document(io.BytesIO(uploaded_file.read()))
+        return "\n".join(p.text for p in doc.paragraphs)
+
+    else:
+        raise ValueError(f"Unsupported file type: .{file_type}")
+    
 def generate_quiz_from_notes(text):
     sentences = [s.strip() for s in re.split(r'[.!?]', text) if len(s.strip()) > 5]
     questions = []
@@ -43,7 +64,23 @@ def generate_quiz_from_notes(text):
 st.title("🧠 NoteGenie - Summarize Notes & Create Quizzes")
 st.markdown("Paste your notes below:")
 
-user_input = st.text_area("📝 Your Notes", height=300, placeholder="Enter your study notes here...")
+uploaded_file = st.file_uploader("📎 Or upload notes (PDF, DOCX, TXT)", type=["pdf", "docx", "txt"])
+
+extracted_text = ""
+if uploaded_file is not None:
+    try:
+        extracted_text = extract_text_from_file(uploaded_file)
+        st.success(f"Loaded {len(extracted_text.split())} words from {uploaded_file.name}")
+    except Exception as e:
+        st.error(f"Couldn't read {uploaded_file.name}: {str(e)}")
+
+user_input = st.text_area(
+    "📝 Your Notes",
+    value=extracted_text,
+    height=300,
+    placeholder="Enter your study notes here, or upload a file above..."
+)
+
 
 col1, col2 = st.columns(2)
 
