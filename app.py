@@ -61,6 +61,31 @@ def generate_quiz_from_notes(text):
     return "\n".join(questions) if questions else "Could not generate questions. Try providing longer, complete sentences."
 
 # UI Layout
+# Sidebar
+with st.sidebar:
+    st.header("🧠 About NoteGenie")
+    st.markdown(
+        "NoteGenie helps you turn raw notes into a **quick summary** "
+        "and a **self-test quiz** — great for last-minute revision."
+    )
+
+    st.subheader("How to use")
+    st.markdown(
+        "1. Paste your notes, or upload a PDF/DOCX/TXT file\n"
+        "2. Click **Summarize** for a condensed version\n"
+        "3. Click **Generate Quiz** to test yourself"
+    )
+
+    st.subheader("Tips")
+    st.markdown(
+        "- Longer, well-formed sentences give better quiz questions\n"
+        "- Aim for 20+ words for a useful summary"
+    )
+
+    st.divider()
+    st.caption("Built with Streamlit + Hugging Face Transformers")
+
+# UI Layout
 st.title("🧠 NoteGenie - Summarize Notes & Create Quizzes")
 st.markdown("Paste your notes below:")
 
